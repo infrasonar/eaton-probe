@@ -113,10 +113,10 @@ async def snmpquery(
     else:
         results = {}
         try:
-            for oid in queries:
+            for oid, name in queries:
                 result = await cl.walk(oid)
                 try:
-                    name, result = on_result(oid, result)
+                    _, result = on_result(oid, result)
                 except Exception as e:
                     msg = str(e) or type(e).__name__
                     raise CheckException(
