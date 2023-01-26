@@ -22,4 +22,3 @@ Variable            | Default                        | Description
 ```
 docker build -t eaton-probe . --no-cache
 ```
-# eaton-infrasonar
