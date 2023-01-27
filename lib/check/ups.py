@@ -1,27 +1,29 @@
 from asyncsnmplib.mib.mib_index import MIB_INDEX
+from asyncsnmplib.exceptions import SnmpNoAuthParams, SnmpNoConnection
+from asyncsnmplib.utils import InvalidConfigException, snmp_queries
 from libprobe.asset import Asset
-from ..snmpquery import snmpquery
+from libprobe.exceptions import CheckException, IgnoreResultException
 
 QUERIES = (
-    (MIB_INDEX['XUPS-MIB']['xupsIdent'], 'indent'),
-    (MIB_INDEX['XUPS-MIB']['xupsBattery'], 'battery'),
-    (MIB_INDEX['XUPS-MIB']['xupsInput'], 'input'),
-    (MIB_INDEX['XUPS-MIB']['xupsInputEntry'], 'inputTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsOutput'], 'output'),
-    (MIB_INDEX['XUPS-MIB']['xupsOutputEntry'], 'outputTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsBypass'], 'bypass'),
-    (MIB_INDEX['XUPS-MIB']['xupsBypassEntry'], 'bypassTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsEnvironment'], 'environment'),
-    (MIB_INDEX['XUPS-MIB']['xupsAlarm'], 'alarm'),
-    (MIB_INDEX['XUPS-MIB']['xupsAlarmEntry'], 'alarmTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsAlarmEventEntry'], 'alarmEventTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsTest'], 'test'),
-    (MIB_INDEX['XUPS-MIB']['xupsControl'], 'control'),
-    (MIB_INDEX['XUPS-MIB']['xupsConfig'], 'config'),
-    (MIB_INDEX['XUPS-MIB']['xupsTrapControl'], 'trapControl'),
-    (MIB_INDEX['XUPS-MIB']['xupsRecep'], 'recep'),
-    (MIB_INDEX['XUPS-MIB']['xupsRecepEntry'], 'recepTable'),
-    (MIB_INDEX['XUPS-MIB']['xupsTopology'], 'topology'),
+    MIB_INDEX['XUPS-MIB']['xupsIdent'],
+    MIB_INDEX['XUPS-MIB']['xupsBattery'],
+    MIB_INDEX['XUPS-MIB']['xupsInput'],
+    MIB_INDEX['XUPS-MIB']['xupsInputEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsOutput'],
+    MIB_INDEX['XUPS-MIB']['xupsOutputEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsBypass'],
+    MIB_INDEX['XUPS-MIB']['xupsBypassEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsEnvironment'],
+    MIB_INDEX['XUPS-MIB']['xupsAlarm'],
+    MIB_INDEX['XUPS-MIB']['xupsAlarmEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsAlarmEventEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsTest'],
+    MIB_INDEX['XUPS-MIB']['xupsControl'],
+    MIB_INDEX['XUPS-MIB']['xupsConfig'],
+    MIB_INDEX['XUPS-MIB']['xupsTrapControl'],
+    MIB_INDEX['XUPS-MIB']['xupsRecep'],
+    MIB_INDEX['XUPS-MIB']['xupsRecepEntry'],
+    MIB_INDEX['XUPS-MIB']['xupsTopology'],
 )
 
 
@@ -29,18 +31,28 @@ async def check_ups(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
+    address = check_config.get('address')
+    if address is None:
+        address = asset.name
+    try:
+        state = await snmp_queries(address, asset_config, QUERIES)
+    except SnmpNoConnection as e:
+        raise CheckException('unable to connect')
+    except (InvalidConfigException, SnmpNoAuthParams):
+        raise IgnoreResultException
+    except Exception:
+        raise
 
-    state = await snmpquery(asset, asset_config, check_config, QUERIES)
-    for item in state.get('input', []):
-        if 'Frequency' in item:
-            item['Frequency'] *= 10
-    for item in state.get('output', []):
-        if 'Frequency' in item:
-            item['Frequency'] *= 10
-    for item in state.get('bypass', []):
-        if 'Frequency' in item:
-            item['Frequency'] *= 10
-    for item in state.get('config', []):
-        if 'Freq' in item:
-            item['Freq'] *= 10        
+    for item in state.get('xupsInputEntry', []):
+        if 'xupsInputFrequency' in item:
+            item['xupsInputFrequency'] *= 10
+    for item in state.get('xupsOutputEntry', []):
+        if 'xupsOutputFrequency' in item:
+            item['xupsOutputFrequency'] *= 10
+    for item in state.get('xupsBypassEntry', []):
+        if 'xupsBypassFrequency' in item:
+            item['xupsBypassFrequency'] *= 10
+    for item in state.get('xupsConfig', []):
+        if 'xupsConfigOutputFreq' in item:
+            item['xupsConfigOutputFreq'] *= 10
     return state
