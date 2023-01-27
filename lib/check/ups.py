@@ -1,8 +1,6 @@
 from asyncsnmplib.mib.mib_index import MIB_INDEX
-from asyncsnmplib.exceptions import SnmpNoAuthParams, SnmpNoConnection
-from asyncsnmplib.utils import InvalidConfigException, snmp_queries
 from libprobe.asset import Asset
-from libprobe.exceptions import CheckException, IgnoreResultException
+from ..snmpquery import snmpquery
 
 QUERIES = (
     MIB_INDEX['XUPS-MIB']['xupsIdent'],
@@ -31,18 +29,7 @@ async def check_ups(
         asset: Asset,
         asset_config: dict,
         check_config: dict) -> dict:
-    address = check_config.get('address')
-    if address is None:
-        address = asset.name
-    try:
-        state = await snmp_queries(address, asset_config, QUERIES)
-    except SnmpNoConnection as e:
-        raise CheckException('unable to connect')
-    except (InvalidConfigException, SnmpNoAuthParams):
-        raise IgnoreResultException
-    except Exception:
-        raise
-
+    state = await snmpquery(asset, asset_config, check_config, QUERIES)
     for item in state.get('xupsInputEntry', []):
         if 'xupsInputFrequency' in item:
             item['xupsInputFrequency'] *= 10
