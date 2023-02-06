@@ -22,3 +22,24 @@ Variable            | Default                        | Description
 ```
 docker build -t eaton-probe . --no-cache
 ```
+
+## Dry run
+
+Available checks:
+- `ups`
+
+Create a yaml file, for example _(test.yaml)_:
+
+```yaml
+asset:
+  name: "foo.local"
+  check: "ups"
+  config:
+    address: "192.168.1.2"
+```
+
+Run the probe with the `DRY_RUN` environment variable set the the yaml file above.
+
+```
+DRY_RUN=test.yaml python main.py
+```
