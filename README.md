@@ -3,6 +3,8 @@
 
 # InfraSonar Eaton Probe
 
+Documentation: https://docs.infrasonar.com/collectors/probes/eaton/
+
 ## Environment variable
 
 Variable            | Default                        | Description
